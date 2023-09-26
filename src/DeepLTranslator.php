@@ -4,65 +4,27 @@ namespace Justmd5\DeeplX;
 
 use Exception;
 
+/**
+ * @method zh2en(string $string, bool $raw = false):array|string
+ * @method en2zh(string $string, bool $raw = false):array|string
+ */
 class DeepLTranslator
 {
-    private $supportedLanguages = [
-        ['auto', 'auto'],
-        ['de', 'DE'],
-        ['en', 'EN'],
-        ['es', 'ES'],
-        ['fr', 'FR'],
-        ['it', 'IT'],
-        ['ja', 'JA'],
-        ['ko', 'KO'],
-        ['nl', 'NL'],
-        ['pl', 'PL'],
-        ['pt', 'PT'],
-        ['ru', 'RU'],
-        ['zh', 'ZH'],
-        ['zh', 'ZH'],
-        ['bg', 'BG'],
-        ['cs', 'CS'],
-        ['da', 'DA'],
-        ['el', 'EL'],
-        ['et', 'ET'],
-        ['fi', 'FI'],
-        ['hu', 'HU'],
-        ['lt', 'LT'],
-        ['lv', 'LV'],
-        ['ro', 'RO'],
-        ['sk', 'SK'],
-        ['sl', 'SL'],
-        ['sv', 'SV'],
-    ];
-
     protected $response;
 
-    private $langMap;
-
-    public function __construct()
-    {
-        $this->langMap = array_column($this->supportedLanguages, 1, 0);
-    }
+    private $langMap = [
+        'AUTO', 'DE', 'EN', 'ES', 'FR', 'IT', 'JA', 'KO', 'NL', 'PL', 'PT', 'RU', 'ZH',
+        'BG', 'CS', 'DA', 'EL', 'ET', 'FI', 'HU', 'LT', 'LV', 'RO', 'SK', 'SL', 'SV',
+    ];
 
     /**
-     * @return array|string
-     *
      * @throws Exception
      */
-    public function zh2en($query, bool $raw = false)
+    public function __call($method, $args)
     {
-        return $this->translate($query, 'zh', 'en')->result($raw);
-    }
+        [$from, $to] = explode('2', $method);
 
-    /**
-     * @return array|string
-     *
-     * @throws Exception
-     */
-    public function en2zh($query, bool $raw = false)
-    {
-        return $this->translate($query, 'en', 'zh')->result($raw);
+        return $this->translate($args[0], $from, $to)->result($args[1] ?? false);
     }
 
     /**
@@ -72,28 +34,30 @@ class DeepLTranslator
      */
     public function translate(string $query, string $from, string $to, bool $resultReturn = false, bool $raw = false)
     {
-        $targetLanguage = $this->langMap[$to] ?? 'auto';
-        $sourceLanguage = $this->langMap[$from] ?? 'auto';
-        if ($targetLanguage == $sourceLanguage) {
-            throw new Exception('参数错误', 0, null);
+        $from = strtoupper($from);
+        $to = strtoupper($to);
+        $targetLang = in_array($to, $this->langMap, true) ? $to : 'auto';
+        $sourceLang = in_array($from, $this->langMap, true) ? $from : 'auto';
+        if ($targetLang == $sourceLang) {
+            throw new Exception('参数错误');
         }
-        if (! $targetLanguage) {
-            throw new Exception('不支持该语种', 0, null);
+        if (! $targetLang) {
+            throw new Exception('不支持该语种');
         }
         $translateText = $query ?: '';
         if (empty($translateText)) {
-            throw new Exception('请输入内容', 0, null);
+            throw new Exception('请输入内容');
         }
         $url = 'https://www2.deepl.com/jsonrpc';
         $id = rand(100000, 999999) * 1000;
-        $postData = $this->initData($sourceLanguage, $targetLanguage);
+        $postData = static::initData($sourceLang, $targetLang);
         $text = [
             'text' => $translateText,
             'requestAlternatives' => 3,
         ];
         $postData['id'] = $id;
         $postData['params']['texts'] = [$text];
-        $postData['params']['timestamp'] = $this->getTimeStamp($this->getICount($translateText));
+        $postData['params']['timestamp'] = static::getTimeStamp($translateText);
         $postStr = json_encode($postData);
         $replace = ($id + 5) % 29 === 0 || ($id + 3) % 13 === 0 ? '"method" : "' : '"method": "';
         $postStr = str_replace('"method":"', $replace, $postStr);
@@ -138,7 +102,7 @@ class DeepLTranslator
         return $this->response;
     }
 
-    private function initData($sourceLang, $targetLang): array
+    private static function initData(string $sourceLang, string $targetLang): array
     {
         return [
             'jsonrpc' => '2.0',
@@ -153,9 +117,10 @@ class DeepLTranslator
         ];
     }
 
-    private function getTimeStamp(int $iCount): int
+    private static function getTimeStamp(string $translateText): int
     {
         $ts = time();
+        $iCount = substr_count($translateText, 'i');
         if ($iCount !== 0) {
             $iCount = $iCount + 1;
 
@@ -163,11 +128,6 @@ class DeepLTranslator
         }
 
         return $ts;
-    }
-
-    private function getICount(string $translateText): int
-    {
-        return substr_count($translateText, 'i');
     }
 
     /**
