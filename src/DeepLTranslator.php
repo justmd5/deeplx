@@ -34,19 +34,19 @@ class DeepLTranslator
      */
     public function translate(string $query, string $from, string $to, bool $resultReturn = false, bool $raw = false)
     {
+        if (empty($from) || empty($to)) {
+            throw new Exception('params error');
+        }
         $from = strtoupper($from);
         $to = strtoupper($to);
         $targetLang = in_array($to, $this->langMap, true) ? $to : 'auto';
         $sourceLang = in_array($from, $this->langMap, true) ? $from : 'auto';
         if ($targetLang == $sourceLang) {
-            throw new Exception('参数错误');
-        }
-        if (! $targetLang) {
-            throw new Exception('不支持该语种');
+            throw new Exception('params error');
         }
         $translateText = $query ?: '';
         if (empty($translateText)) {
-            throw new Exception('请输入内容');
+            throw new Exception('please input translate text');
         }
         $url = 'https://www2.deepl.com/jsonrpc';
         $id = rand(100000, 999999) * 1000;
@@ -65,7 +65,7 @@ class DeepLTranslator
             $response = $this->postData($url, $postStr);
             $this->response = $response;
         } catch (Exception $e) {
-            throw new Exception('接口请求错误 - '.$e->getMessage(), 0, $e);
+            throw new Exception('request error :'.$e->getMessage(), 0, $e);
         }
         if ($resultReturn) {
             return $this->result($raw);
