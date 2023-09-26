@@ -5,7 +5,7 @@ deeplx is a simple and fast free deepl library for PHP.
 ## Installing
 
 ```shell
-$ composer require jsutmd5/deeplx -vvv
+$ composer require justmd5/deeplx -vvv
 ```
 
 ## Usage
