@@ -50,7 +50,7 @@ class DeepLTranslator
      *
      * @throws Exception
      */
-    public function zh2en($query, bool $raw = false): array
+    public function zh2en($query, bool $raw = false)
     {
         return $this->translate($query, 'zh', 'en')->result($raw);
     }
@@ -60,13 +60,13 @@ class DeepLTranslator
      *
      * @throws Exception
      */
-    public function en2zh($query, bool $raw = false): array
+    public function en2zh($query, bool $raw = false)
     {
         return $this->translate($query, 'en', 'zh')->result($raw);
     }
 
     /**
-     * @return array|deepLTranslator|string
+     * @return array|DeepLTranslator|string
      *
      * @throws Exception
      */
