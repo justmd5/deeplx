@@ -1,4 +1,4 @@
-# Deeplx
+# DeeplX
 
 deeplx is a simple and fast free deepl library for PHP.
 
