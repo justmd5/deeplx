@@ -11,6 +11,7 @@ use Exception;
 class DeepLTranslator
 {
     protected $response;
+    protected $rpcUrl = 'https://www2.deepl.com/jsonrpc';
 
     private $langMap = [
         'AUTO', 'DE', 'EN', 'ES', 'FR', 'IT', 'JA', 'KO', 'NL', 'PL', 'PT', 'RU', 'ZH',
@@ -48,7 +49,6 @@ class DeepLTranslator
         if (empty($translateText)) {
             throw new Exception('please input translate text');
         }
-        $url = 'https://www2.deepl.com/jsonrpc';
         $id = rand(100000, 999999) * 1000;
         $postData = static::initData($sourceLang, $targetLang);
         $text = [
@@ -62,7 +62,7 @@ class DeepLTranslator
         $replace = ($id + 5) % 29 === 0 || ($id + 3) % 13 === 0 ? '"method" : "' : '"method": "';
         $postStr = str_replace('"method":"', $replace, $postStr);
         try {
-            $response = $this->postData($url, $postStr);
+            $response = $this->postData($this->rpcUrl, $postStr);
             $this->response = $response;
         } catch (Exception $e) {
             throw new Exception('request error :'.$e->getMessage(), 0, $e);
