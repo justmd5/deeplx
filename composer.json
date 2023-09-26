@@ -1,0 +1,66 @@
+{
+    "name": "justmd5/deeplx",
+    "description": "deeplx is a simple and fast free deepl library for PHP.",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "justmd5",
+            "email": "heyjun20212@gmail.com"
+        }
+    ],
+    "require": {
+        "php": ">=7.2||8.*",
+        "ext-curl": "*",
+        "ext-json": "*"
+    },
+    "require-dev": {
+        "brainmaestro/composer-git-hooks": "^2.8",
+        "mockery/mockery": "^1.2",
+        "phpunit/phpunit": "^9.0",
+        "vimeo/psalm": "^4.10",
+        "jetbrains/phpstorm-attributes": "^1.0",
+        "laravel/pint": "^1.10"
+    },
+    "autoload": {
+        "psr-4": {
+            "Justmd5\\DeeplX\\": "src"
+        }
+    },
+    "extra": {
+        "hooks": {
+            "pre-commit": [
+                "composer pint",
+                "composer test"
+            ],
+            "pre-push": [
+                "composer pint",
+                "composer test"
+            ]
+        }
+    },
+    "scripts": {
+        "post-update-cmd": [
+            "cghooks remove",
+            "cghooks add --ignore-lock",
+            "cghooks update"
+        ],
+        "post-merge": "composer install",
+        "post-install-cmd": [
+            "cghooks remove",
+            "cghooks add --ignore-lock",
+            "cghooks update"
+        ],
+        "cghooks": "vendor/bin/cghooks",
+        "check-style": "vendor/bin/pint ./src ./tests --test",
+        "pint": "vendor/bin/pint ./src ./tests",
+        "fix-style": "vendor/bin/pint ./src ./tests",
+        "test": "phpunit --colors",
+        "psalm": "psalm --show-info=true --no-cache",
+        "psalm-fix": "psalm --no-cache --alter --issues=MissingReturnType,MissingParamType"
+    },
+    "scripts-descriptions": {
+        "test": "Run all tests.",
+        "check-style": "Run style checks (only dry run - no fixing!).",
+        "fix-style": "Run style checks and fix violations."
+    }
+}
