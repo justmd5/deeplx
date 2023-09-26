@@ -138,6 +138,7 @@ class DeepLTranslator
         $curl = curl_init($url);
         curl_setopt_array($curl, [
             CURLOPT_POST => true,
+            CURLOPT_CONNECTTIMEOUT	=> 5,
             CURLOPT_POSTFIELDS => $data,
             CURLOPT_HTTPHEADER => [
                 'Content-Type: application/json',
