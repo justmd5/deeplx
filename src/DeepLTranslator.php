@@ -25,15 +25,20 @@ class DeepLTranslator
     {
         [$from, $to] = explode('2', $method);
 
-        return $this->translate($args[0], $from, $to)->result($args[1] ?? false);
+        return $this->translate($args[0], $to, $from)->result($args[1] ?? false);
     }
 
     /**
+     * @param string $query
+     * @param string $to
+     * @param string $from
+     * @param bool $resultReturn
+     * @param bool $raw
      * @return array|DeepLTranslator|string
      *
      * @throws Exception
      */
-    public function translate(string $query, string $from, string $to, bool $resultReturn = false, bool $raw = false)
+    public function translate(string $query, string $to,string $from='auto', bool $resultReturn = false, bool $raw = false)
     {
         if (empty($from) || empty($to)) {
             throw new Exception('params error');
