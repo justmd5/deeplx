@@ -5,12 +5,23 @@ namespace Justmd5\DeeplX;
 use Exception;
 
 /**
- * @method zh2en(string $string, bool $raw = false):array|string
- * @method en2zh(string $string, bool $raw = false):array|string
+ * @method zh2en(string $string, bool $type = self::TYPE_FORMAT):array|string
+ * @method en2zh(string $string, bool $type = self::TYPE_FORMAT):array|string
  */
 class DeepLTranslator
 {
+    const SUCCESS = 1000;
+
+    const ERROR = 1001;
+
+    const TYPE_FORMAT = 0;
+
+    const TYPE_JSON = 1;
+
+    const TYPE_ARRAY = 2;
+
     protected $response;
+
     protected $rpcUrl = 'https://www2.deepl.com/jsonrpc';
 
     private $langMap = [
@@ -19,36 +30,43 @@ class DeepLTranslator
     ];
 
     /**
+     * @var int
+     */
+    protected $timeout;
+
+    public function __construct($timeout = 5)
+    {
+
+        $this->timeout = $timeout;
+    }
+
+    /**
      * @throws Exception
      */
     public function __call($method, $args)
     {
         [$from, $to] = explode('2', $method);
 
-        return $this->translate($args[0], $to, $from)->result($args[1] ?? false);
+        return $this->translate($args[0], $to, $from)->result($args[1] == self::TYPE_JSON ? self::TYPE_JSON : self::TYPE_FORMAT);
     }
 
     /**
-     * @param string $query
-     * @param string $to
-     * @param string $from
-     * @param bool $resultReturn
-     * @param bool $raw
      * @return array|DeepLTranslator|string
      *
      * @throws Exception
      */
-    public function translate(string $query, string $to,string $from='auto', bool $resultReturn = false, bool $raw = false)
+    public function translate(string $query, string $to, string $from = 'auto', bool $resultReturn = false, int $type = self::TYPE_FORMAT)
     {
+        $this->response = '[]';
         if (empty($from) || empty($to)) {
-            throw new Exception('params error');
+            throw new Exception('params error', __LINE__);
         }
         $from = strtoupper($from);
         $to = strtoupper($to);
         $targetLang = in_array($to, $this->langMap, true) ? $to : 'auto';
         $sourceLang = in_array($from, $this->langMap, true) ? $from : 'auto';
         if ($targetLang == $sourceLang) {
-            throw new Exception('params error');
+            throw new Exception('params error', __LINE__);
         }
         $translateText = $query ?: '';
         if (empty($translateText)) {
@@ -66,45 +84,60 @@ class DeepLTranslator
         $postStr = json_encode($postData);
         $replace = ($id + 5) % 29 === 0 || ($id + 3) % 13 === 0 ? '"method" : "' : '"method": "';
         $postStr = str_replace('"method":"', $replace, $postStr);
-        try {
-            $response = $this->postData($this->rpcUrl, $postStr);
-            $this->response = $response;
-        } catch (Exception $e) {
-            throw new Exception('request error :'.$e->getMessage(), 0, $e);
-        }
+        $this->response = $this->postData($this->rpcUrl, $postStr);
         if ($resultReturn) {
-            return $this->result($raw);
+            return $this->result($type);
         }
 
         return $this;
     }
 
     /**
+     * @param  int  $type 0:format 1:json string 2:array
      * @return array|string
      */
-    public function result(bool $raw = false)
+    public function result(int $type = self::TYPE_FORMAT)
     {
-        if ($raw) {
-            return $this->raw();
+        if ($type > self::TYPE_FORMAT) {
+            return $this->raw($type);
         }
         $responseData = json_decode($this->response, true);
         if (isset($responseData['error'])) {
             $error = $responseData['error'];
 
             return [
-                'status' => 0, 'code' => $error['code'],
+                'status' => self::ERROR, 'code' => $error['code'],
                 'message' => sprintf('%s,what:%s', $error['message'], $error['data']['what']), 'data' => [],
             ];
         }
 
         return [
-            'status' => 1, 'code' => 1000, 'message' => 'ok', 'data' => $responseData['result']['texts'][0]['text'],
+            'status' => self::SUCCESS, 'code' => self::SUCCESS, 'message' => 'ok', 'data' => $responseData['result']['texts'][0]['text'],
         ];
     }
 
-    public function raw(): string
+    /**
+     * @return string|array
+     */
+    public function raw(int $type = self::TYPE_JSON)
     {
-        return $this->response;
+        return $type == self::TYPE_JSON ? $this->response : json_decode($this->response, true);
+    }
+
+    /**
+     * @return array|string
+     */
+    public function rawJson()
+    {
+        return $this->raw();
+    }
+
+    /**
+     * @return array|string
+     */
+    public function rawArray()
+    {
+        return $this->raw(self::TYPE_ARRAY);
     }
 
     private static function initData(string $sourceLang, string $targetLang): array
@@ -147,7 +180,7 @@ class DeepLTranslator
             CURLOPT_HTTPHEADER => [
                 'Content-Type: application/json',
             ],
-            CURLOPT_CONNECTTIMEOUT	=> 5,
+            CURLOPT_CONNECTTIMEOUT => $this->timeout ?? 5,
             CURLOPT_RETURNTRANSFER => true,
         ]);
         $response = curl_exec($curl);
