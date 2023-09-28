@@ -14,8 +14,9 @@ $ composer require justmd5/deeplx -vvv
 <?php
 require __DIR__.'/vendor/autoload.php';
 $deeplx=new \Justmd5\DeeplX\DeepLTranslator();
-//translate chinese to english
+
 try {
+//translate chinese to english
     var_dump($deeplx->zh2en("你好"));
     //output:
         //    array(4) {
@@ -28,7 +29,7 @@ try {
         //    ["data"]=>
         //    string(12) "How are you?"
         //    }
-
+//translate english to chinese
     var_dump($deeplx->en2zh("hello my friend."));
     //output:
         //array(4) {
@@ -40,6 +41,22 @@ try {
         //  string(2) "ok"
         //  ["data"]=>
         //  string(24) "你好，我的朋友。"
+        //}
+        
+        
+//normal translate func demo
+    $result = $translator->translate('hello', 'ja')->result();
+    var_dump($result);
+    //output:
+        //array(4) {
+        //  ["status"]=>
+        //  int(1)
+        //  ["code"]=>
+        //  int(1000)
+        //  ["message"]=>
+        //  string(2) "ok"
+        //  ["data"]=>
+        //  string(12) "こんにちわ"
         //}
 
 } catch (Exception $e) {
