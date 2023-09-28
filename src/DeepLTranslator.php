@@ -70,7 +70,7 @@ class DeepLTranslator
         }
         $translateText = $query ?: '';
         if (empty($translateText)) {
-            throw new Exception('please input translate text');
+            throw new Exception('please input translate text',__LINE__);
         }
         $id = rand(100000, 999999) * 1000;
         $postData = static::initData($sourceLang, $targetLang);
