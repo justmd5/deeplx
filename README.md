@@ -21,7 +21,7 @@ try {
     //output:
         //    array(4) {
         //    ["status"]=>
-        //    int(1)
+        //    int(1000)
         //    ["code"]=>
         //    int(1000)
         //    ["message"]=>
@@ -34,7 +34,7 @@ try {
     //output:
         //array(4) {
         //  ["status"]=>
-        //  int(1)
+        //  int(1000)
         //  ["code"]=>
         //  int(1000)
         //  ["message"]=>
@@ -50,7 +50,7 @@ try {
     //output:
         //array(4) {
         //  ["status"]=>
-        //  int(1)
+        //  int(1000)
         //  ["code"]=>
         //  int(1000)
         //  ["message"]=>
