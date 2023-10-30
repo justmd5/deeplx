@@ -47,7 +47,7 @@ class DeepLTranslator
     {
         [$from, $to] = explode('2', $method);
 
-        return $this->translate($args[0], $to, $from)->result(isset($args[1])&&$args[1] == self::TYPE_JSON ? self::TYPE_JSON : self::TYPE_FORMAT);
+        return $this->translate($args[0], $to, $from)->result(isset($args[1]) && $args[1] == self::TYPE_JSON ? self::TYPE_JSON : self::TYPE_FORMAT);
     }
 
     /**
@@ -70,7 +70,7 @@ class DeepLTranslator
         }
         $translateText = $query ?: '';
         if (empty($translateText)) {
-            throw new Exception('please input translate text',__LINE__);
+            throw new Exception('please input translate text', __LINE__);
         }
         $id = rand(100000, 999999) * 1000;
         $postData = static::initData($sourceLang, $targetLang);
