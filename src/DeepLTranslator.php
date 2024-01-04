@@ -20,10 +20,19 @@ class DeepLTranslator
 
     const TYPE_ARRAY = 2;
 
+    /**
+     * @var mixed
+     */
     protected $response;
 
+    /**
+     * @var string
+     */
     protected $rpcUrl = 'https://www2.deepl.com/jsonrpc';
 
+    /**
+     * @var string[]
+     */
     private $langMap = [
         'AUTO', 'DE', 'EN', 'ES', 'FR', 'IT', 'JA', 'KO', 'NL', 'PL', 'PT', 'RU', 'ZH',
         'BG', 'CS', 'DA', 'EL', 'ET', 'FI', 'HU', 'LT', 'LV', 'RO', 'SK', 'SL', 'SV',
@@ -34,16 +43,18 @@ class DeepLTranslator
      */
     protected $timeout;
 
-    public function __construct($timeout = 5)
+    public function __construct(int $timeout = 5)
     {
 
         $this->timeout = $timeout;
     }
 
     /**
+     * @return array|string
+     *
      * @throws Exception
      */
-    public function __call($method, $args)
+    public function __call(string $method, array $args)
     {
         [$from, $to] = explode('2', $method);
 
@@ -51,11 +62,11 @@ class DeepLTranslator
     }
 
     /**
-     * @return array|DeepLTranslator|string
+     * @return $this
      *
      * @throws Exception
      */
-    public function translate(string $query, string $to, string $from = 'auto', bool $resultReturn = false, int $type = self::TYPE_FORMAT)
+    public function translate(string $query, string $to, string $from = 'auto'): DeepLTranslator
     {
         $this->response = '[]';
         if (empty($from) || empty($to)) {
@@ -85,9 +96,6 @@ class DeepLTranslator
         $replace = ($id + 5) % 29 === 0 || ($id + 3) % 13 === 0 ? '"method" : "' : '"method": "';
         $postStr = str_replace('"method":"', $replace, $postStr);
         $this->response = $this->postData($this->rpcUrl, $postStr);
-        if ($resultReturn) {
-            return $this->result($type);
-        }
 
         return $this;
     }
@@ -180,7 +188,7 @@ class DeepLTranslator
             CURLOPT_HTTPHEADER => [
                 'Content-Type: application/json',
             ],
-            CURLOPT_CONNECTTIMEOUT => $this->timeout ?? 5,
+            CURLOPT_CONNECTTIMEOUT => $this->timeout,
             CURLOPT_RETURNTRANSFER => true,
         ]);
         $response = curl_exec($curl);
