@@ -115,7 +115,7 @@ class DeepLTranslator
 
             return [
                 'status' => self::ERROR, 'code' => $error['code'],
-                'message' => sprintf('%s,what:%s', $error['message'], $error['data']['what']), 'data' => [],
+                'message' => sprintf('%s,what:%s', $error['message'] ?? '', $error['data']['what'] ?? ''), 'data' => [],
             ];
         }
 
