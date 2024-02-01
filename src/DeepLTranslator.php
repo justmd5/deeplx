@@ -21,7 +21,7 @@ class DeepLTranslator
     const TYPE_ARRAY = 2;
 
     /**
-     * @var mixed
+     * @var string
      */
     protected $response;
 
