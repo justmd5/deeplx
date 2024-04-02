@@ -43,10 +43,25 @@ class DeepLTranslator
      */
     protected $timeout;
 
+    /**
+     * @var bool
+     */
+    protected static $verify = true;
+
     public function __construct(int $timeout = 5)
     {
 
         $this->timeout = $timeout;
+    }
+
+    /**
+     * @return DeepLTranslator
+     */
+    public static function withoutVerifying(): DeepLTranslator
+    {
+        self::$verify = false;
+
+        return new self;
     }
 
     /**
@@ -101,7 +116,7 @@ class DeepLTranslator
     }
 
     /**
-     * @param  int  $type 0:format 1:json string 2:array
+     * @param int $type 0:format 1:json string 2:array
      * @return array|string
      */
     public function result(int $type = self::TYPE_FORMAT)
@@ -181,8 +196,7 @@ class DeepLTranslator
      */
     private function postData(string $url, string $data)
     {
-        $curl = curl_init($url);
-        curl_setopt_array($curl, [
+        $opt = [
             CURLOPT_POST => true,
             CURLOPT_POSTFIELDS => $data,
             CURLOPT_HTTPHEADER => [
@@ -190,7 +204,15 @@ class DeepLTranslator
             ],
             CURLOPT_CONNECTTIMEOUT => $this->timeout,
             CURLOPT_RETURNTRANSFER => true,
-        ]);
+        ];
+
+        if (self::$verify == false) {
+            $opt[CURLOPT_SSL_VERIFYPEER] = false;
+            $opt[CURLOPT_SSL_VERIFYHOST] = false;
+        }
+
+        $curl = curl_init($url);
+        curl_setopt_array($curl, $opt);
         $response = curl_exec($curl);
         curl_close($curl);
 
