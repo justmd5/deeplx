@@ -54,14 +54,11 @@ class DeepLTranslator
         $this->timeout = $timeout;
     }
 
-    /**
-     * @return DeepLTranslator
-     */
     public static function withoutVerifying(): DeepLTranslator
     {
-        self::$verify = false;
+        static::$verify = false;
 
-        return new self;
+        return new static;
     }
 
     /**
@@ -116,7 +113,7 @@ class DeepLTranslator
     }
 
     /**
-     * @param int $type 0:format 1:json string 2:array
+     * @param  int  $type 0:format 1:json string 2:array
      * @return array|string
      */
     public function result(int $type = self::TYPE_FORMAT)
@@ -206,7 +203,7 @@ class DeepLTranslator
             CURLOPT_RETURNTRANSFER => true,
         ];
 
-        if (self::$verify == false) {
+        if (! static::$verify) {
             $opt[CURLOPT_SSL_VERIFYPEER] = false;
             $opt[CURLOPT_SSL_VERIFYHOST] = false;
         }
