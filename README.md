@@ -64,6 +64,11 @@ try {
 }
 ```
 
+## without verify
+
+```shell
+\Justmd5\DeeplX\DeepLTranslator::withoutVerifying()->en2zh('hello');
+```
 
 
 ## Contributing
