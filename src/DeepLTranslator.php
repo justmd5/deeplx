@@ -7,6 +7,8 @@ use Exception;
 /**
  * @method zh2en(string $string, bool $type = self::TYPE_FORMAT):array|string
  * @method en2zh(string $string, bool $type = self::TYPE_FORMAT):array|string
+ * @method en2zh_tw(string $string, bool $type = self::TYPE_FORMAT):array|string
+ * @method zh_tw2en(string $string, bool $type = self::TYPE_FORMAT):array|string
  */
 class DeepLTranslator
 {
@@ -36,13 +38,20 @@ class DeepLTranslator
     private $langMap = [
         'AUTO', 'AR', 'BG', 'CS', 'DA', 'DE', 'EL', 'EN', 'ES', 'ET', 'FI', 'FR', 'HU',
         'ID', 'IT', 'JA', 'KO', 'LT', 'LV', 'NB', 'NL', 'PL', 'PT', 'RO', 'RU', 'SK',
-        'SL', 'SV', 'TR', 'UK', 'ZH',
+        'SL', 'SV', 'TR', 'UK', 'ZH', 'ZH-TW',
+    ];
+
+    /**
+     * @var array[]
+     */
+    protected $changeTargetArray = [
+        'ZH-TW' => ['name' => 'ZH', 'regionalVariant' => 'zh-Hant'],
     ];
 
     /**
      * @var int
      */
-    protected $timeout;
+    protected $timeout = 5;
 
     /**
      * @var bool
@@ -71,7 +80,11 @@ class DeepLTranslator
     {
         [$from, $to] = explode('2', $method);
 
-        return $this->translate($args[0], $to, $from)->result(isset($args[1]) && $args[1] == self::TYPE_JSON ? self::TYPE_JSON : self::TYPE_FORMAT);
+        return $this->translate(
+            $args[0], str_replace('_', '-', $to),
+            str_replace('_', '-', $from)
+        )
+            ->result(isset($args[1]) && $args[1] == self::TYPE_JSON ? self::TYPE_JSON : self::TYPE_FORMAT);
     }
 
     /**
@@ -97,13 +110,8 @@ class DeepLTranslator
             throw new Exception('please input translate text', __LINE__);
         }
         $id = rand(100000, 999999) * 1000;
-        $postData = static::initData($sourceLang, $targetLang);
-        $text = [
-            'text' => $translateText,
-            'requestAlternatives' => 3,
-        ];
+        $postData = $this->initData($sourceLang, $targetLang, $translateText);
         $postData['id'] = $id;
-        $postData['params']['texts'] = [$text];
         $postData['params']['timestamp'] = static::getTimeStamp($translateText);
         $postStr = json_encode($postData);
         $replace = ($id + 5) % 29 === 0 || ($id + 3) % 13 === 0 ? '"method" : "' : '"method": "';
@@ -131,9 +139,15 @@ class DeepLTranslator
                 'message' => sprintf('%s,what:%s', $error['message'] ?? '', $error['data']['what'] ?? ''), 'data' => [],
             ];
         }
+        $result = $responseData['result']['texts'][0]['text'] ?? ($responseData['result']['translations'][0]['beams'][0]['sentences'][0]['text'] ?? '');
+        if (empty($result)) {
+            return [
+                'status' => self::ERROR, 'code' => self::ERROR, 'message' => 'translate error', 'data' => [],
+            ];
+        }
 
         return [
-            'status' => self::SUCCESS, 'code' => self::SUCCESS, 'message' => 'ok', 'data' => $responseData['result']['texts'][0]['text'],
+            'status' => self::SUCCESS, 'code' => self::SUCCESS, 'message' => 'ok', 'data' => $result,
         ];
     }
 
@@ -161,16 +175,64 @@ class DeepLTranslator
         return $this->raw(self::TYPE_ARRAY);
     }
 
-    private static function initData(string $sourceLang, string $targetLang): array
+    private function initData(string $sourceLang, string $targetLang, string $translateText): array
     {
-        return [
+        $baseParams = [
             'jsonrpc' => '2.0',
             'method' => 'LMT_handle_texts',
             'params' => [
                 'splitting' => 'newlines',
+                'texts' => [
+                    [
+                        'text' => $translateText,
+                        'requestAlternatives' => 3,
+                    ],
+                ],
                 'lang' => [
                     'source_lang_user_selected' => $sourceLang,
                     'target_lang' => $targetLang,
+                ],
+            ],
+        ];
+        if (! array_key_exists($targetLang, $this->changeTargetArray)) {
+            return $baseParams;
+        }
+
+        return [
+            'jsonrpc' => '2.0',
+            'method' => 'LMT_handle_jobs',
+            'params' => [
+                'jobs' => [
+                    [
+                        'kind' => 'default',
+                        'sentences' => [
+                            [
+                                'text' => $translateText,
+                                'id' => 1,
+                                'prefix' => '',
+                            ],
+                        ],
+                        'raw_en_context_before' => [],
+                        'raw_en_context_after' => [],
+                        'preferred_num_beams' => 4,
+                    ],
+                ],
+                'lang' => [
+                    'source_lang_computed' => $sourceLang,
+                    'target_lang' => $this->changeTargetArray[$targetLang]['name'],
+                    'preference' => [
+                        'weight' => new \stdClass(),
+                        'default' => 'default',
+                    ],
+                ],
+                'priority' => -1,
+                'commonJobParams' => [
+                    'quality' => 'fast',
+                    'regionalVariant' => $this->changeTargetArray[$targetLang]['regionalVariant'],
+                    'mode' => 'translate',
+                    'browserType' => 1,
+                    'textType' => 'richtext',
+                    'advancedMode' => false,
                 ],
             ],
         ];
