@@ -5,7 +5,10 @@ use PHPUnit\Framework\TestCase;
 
 class TranslateTest extends TestCase
 {
-    protected static DeepLTranslator $translator;
+    /**
+     * @var DeepLTranslator
+     */
+    protected static $translator;
 
     public static function setUpBeforeClass(): void
     {
