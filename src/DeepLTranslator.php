@@ -9,6 +9,8 @@ use Exception;
  * @method en2zh(string $string, bool $type = self::TYPE_FORMAT):array|string
  * @method en2zh_tw(string $string, bool $type = self::TYPE_FORMAT):array|string
  * @method zh_tw2en(string $string, bool $type = self::TYPE_FORMAT):array|string
+ * @method en2zhHant(string $string, bool $type = self::TYPE_FORMAT):array|string
+ * @method en2zh_hant(string $string, bool $type = self::TYPE_FORMAT):array|string
  */
 class DeepLTranslator
 {
@@ -39,6 +41,8 @@ class DeepLTranslator
         'AUTO', 'AR', 'BG', 'CS', 'DA', 'DE', 'EL', 'EN', 'ES', 'ET', 'FI', 'FR', 'HU',
         'ID', 'IT', 'JA', 'KO', 'LT', 'LV', 'NB', 'NL', 'PL', 'PT', 'RO', 'RU', 'SK',
         'SL', 'SV', 'TR', 'UK', 'ZH', 'ZH-TW',
+        // common alternative representations
+        'ZH-HANT', 'ZH_HANT', 'ZH_TW', 'ZH-CN', 'ZH_CN'
     ];
 
     /**
@@ -60,7 +64,6 @@ class DeepLTranslator
 
     public function __construct(int $timeout = 5)
     {
-
         $this->timeout = $timeout;
     }
 
@@ -78,11 +81,23 @@ class DeepLTranslator
      */
     public function __call(string $method, array $args)
     {
-        [$from, $to] = explode('2', $method);
+        // allow method styles like en2zhHant, en2zh-hant, en2zh_hant, en2zh_hant, etc.
+        // insert hyphen before capital letters so zhHant -> zh-Hant, zhHANT -> zh-HANT
+        $method = preg_replace('/([a-z])([A-Z])/', '$1-$2', $method);
+
+        if (strpos($method, '2') === false) {
+            throw new Exception('invalid method name', __LINE__);
+        }
+
+        [$from, $to] = explode('2', $method, 2);
+
+        // normalize separators and case; translate() will upper-case and canonicalize
+        $from = str_replace('_', '-', strtolower($from));
+        $to = str_replace('_', '-', strtolower($to));
 
         return $this->translate(
-            $args[0], str_replace('_', '-', $to),
-            str_replace('_', '-', $from)
+            $args[0], $to,
+            $from
         )
             ->result(isset($args[1]) && $args[1] == self::TYPE_JSON ? self::TYPE_JSON : self::TYPE_FORMAT);
     }
@@ -98,8 +113,11 @@ class DeepLTranslator
         if (empty($from) || empty($to)) {
             throw new Exception('params error', __LINE__);
         }
-        $from = strtoupper($from);
-        $to = strtoupper($to);
+
+        // Normalize language codes (accept zh-hant, zh_hant, zh-tw, zh_tw, zh, zh-cn, etc.)
+        $from = $this->normalizeLangCode($from);
+        $to = $this->normalizeLangCode($to);
+
         $targetLang = in_array($to, $this->langMap, true) ? $to : 'auto';
         $sourceLang = in_array($from, $this->langMap, true) ? $from : 'auto';
         if ($targetLang == $sourceLang) {
@@ -119,6 +137,39 @@ class DeepLTranslator
         $this->response = $this->postData($this->rpcUrl, $postStr);
 
         return $this;
+    }
+
+    /**
+     * Normalize various language code variations into the canonical codes used internally.
+     * Examples:
+     *  - zh-hant, zh_hant, zh-hant -> ZH-TW
+     *  - zh-tw, zh_tw -> ZH-TW
+     *  - zh, zh-cn -> ZH
+     *
+     * @param string $lang
+     * @return string
+     */
+    private function normalizeLangCode(string $lang): string
+    {
+        $normalized = strtoupper(str_replace('_', '-', trim($lang)));
+
+        // Accept common full forms like 'ZH-HANT', 'ZH-TW', 'ZH_TW', 'ZH-CN', etc.
+        if (strpos($normalized, 'ZH') === 0 || $normalized === 'TW') {
+            // if contains HANT or TW -> treat as Traditional Chinese (ZH-TW)
+            if (strpos($normalized, 'HANT') !== false || strpos($normalized, '-HANT') !== false || strpos($normalized, '-TW') !== false || $normalized === 'TW' || preg_match('/^ZH-T.*/', $normalized)) {
+                return 'ZH-TW';
+            }
+
+            // if it's explicit CN (or contains CN) -> ZH
+            if (strpos($normalized, 'CN') !== false || strpos($normalized, '-CN') !== false) {
+                return 'ZH';
+            }
+
+            // default ZH (Simplified)
+            return 'ZH';
+        }
+
+        return $normalized;
     }
 
     /**
